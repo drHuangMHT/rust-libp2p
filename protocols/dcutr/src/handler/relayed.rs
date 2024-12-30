@@ -119,10 +119,6 @@ impl Handler {
                 }
                 self.attempts += 1;
             }
-            // A connection listener denies all incoming substreams, thus none can ever be fully
-            // negotiated. TODO: remove when Rust 1.82 is MSRV
-            #[allow(unreachable_patterns)]
-            future::Either::Right(output) => libp2p_core::util::unreachable(output),
         }
     }
 
