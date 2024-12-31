@@ -1090,6 +1090,7 @@ where
         }
 
         // Select peers for peer exchange
+        // TODO: get signed_peer_record for PRUNE messages
         let peers = if do_px {
             get_random_peers(
                 &self.connected_peers,
@@ -1570,7 +1571,7 @@ where
             self.score_below_threshold(peer_id, |pst| pst.accept_px_threshold);
         for (topic_hash, px, backoff) in prune_data {
             self.remove_peer_from_mesh(peer_id, &topic_hash, backoff, true, Churn::Prune);
-
+            
             if self.mesh.contains_key(&topic_hash) {
                 // connect to px peers
                 if !px.is_empty() {
