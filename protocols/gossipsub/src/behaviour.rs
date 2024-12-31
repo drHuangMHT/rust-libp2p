@@ -1098,7 +1098,7 @@ where
                 |p| p != peer && !self.score_below_threshold(p, |_| 0.0).0,
             )
             .into_iter()
-            .map(|p| PeerInfo { peer_id: Some(p) })
+            .map(|p| PeerInfo { peer_id: Some(p), signed_peer_record:None })
             .collect()
         } else {
             Vec::new()

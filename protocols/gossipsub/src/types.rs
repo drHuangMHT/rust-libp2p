@@ -23,6 +23,7 @@ use std::{collections::BTreeSet, fmt, fmt::Debug};
 
 use futures_timer::Delay;
 use hashlink::LinkedHashMap;
+use libp2p_core::SignedEnvelope;
 use libp2p_identity::PeerId;
 use libp2p_swarm::ConnectionId;
 use prometheus_client::encoding::EncodeLabelValue;
@@ -31,6 +32,7 @@ use quick_protobuf::MessageWrite;
 use serde::{Deserialize, Serialize};
 use web_time::Instant;
 
+use self::proto::gossipsub::pb;
 use crate::{rpc::Sender, rpc_proto::proto, TopicHash};
 
 /// Messages that have expired while attempting to be sent to a peer.
@@ -242,16 +244,36 @@ pub enum SubscriptionAction {
     Unsubscribe,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct PeerInfo {
     pub(crate) peer_id: Option<PeerId>,
-    // TODO add this when RFC: Signed Address Records got added to the spec (see pull request
-    // https://github.com/libp2p/specs/pull/217)
-    // pub signed_peer_record: ?,
+    pub(crate) signed_peer_record: Option<SignedEnvelope>,
+}
+
+impl std::hash::Hash for PeerInfo {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        <Option<PeerId> as std::hash::Hash>::hash(&self.peer_id, state);
+    }
+}
+
+impl From<pb::PeerInfo> for Option<PeerInfo> {
+    fn from(value: pb::PeerInfo) -> Self {
+        value.peer_id
+        .as_ref()
+        .and_then(|id| PeerId::from_bytes(id).ok())
+        .map(|peer_id|
+                //TODO signedPeerRecord, see https://github.com/libp2p/specs/pull/217
+                PeerInfo {
+                    peer_id: Some(peer_id),
+                    signed_peer_record: 
+                        value.signed_peer_record
+                        .and_then(|bytes|SignedEnvelope::from_protobuf_encoding(&bytes).ok()),
+                })
+    }
 }
 
 /// A Control message received by the gossipsub system.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ControlAction {
     /// Node broadcasts known messages per topic - IHave control message.
     IHave(IHave),
@@ -291,7 +313,7 @@ pub struct Graft {
 }
 
 /// The node has been removed from the mesh - Prune control message.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Prune {
     /// The mesh topic the peer should be removed from.
     pub(crate) topic_hash: TopicHash,
@@ -440,7 +462,9 @@ impl From<RpcOut> for proto::RPC {
                                 .map(|info| proto::PeerInfo {
                                     peer_id: info.peer_id.map(|id| id.to_bytes()),
                                     // TODO, see https://github.com/libp2p/specs/pull/217
-                                    signed_peer_record: None,
+                                    signed_peer_record: info
+                                        .signed_peer_record
+                                        .map(|v| v.into_protobuf_encoding()),
                                 })
                                 .collect(),
                             backoff,
@@ -467,7 +491,7 @@ impl From<RpcOut> for proto::RPC {
 }
 
 /// An RPC received/sent.
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Rpc {
     /// List of messages that were part of this RPC query.
     pub messages: Vec<RawMessage>,
@@ -562,7 +586,9 @@ impl From<Rpc> for proto::RPC {
                             .map(|info| proto::PeerInfo {
                                 peer_id: info.peer_id.map(|id| id.to_bytes()),
                                 // TODO, see https://github.com/libp2p/specs/pull/217
-                                signed_peer_record: None,
+                                signed_peer_record: info
+                                    .signed_peer_record
+                                    .map(|v| v.into_protobuf_encoding()),
                             })
                             .collect(),
                         backoff,

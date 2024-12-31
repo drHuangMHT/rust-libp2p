@@ -372,15 +372,7 @@ fn proto_to_message(rpc: &proto::RPC) -> Rpc {
             let peers = prune
                 .peers
                 .into_iter()
-                .filter_map(|info| {
-                    info.peer_id
-                        .and_then(|id| PeerId::from_bytes(&id).ok())
-                        .map(|peer_id|
-                            //TODO signedPeerRecord, see https://github.com/libp2p/specs/pull/217
-                            PeerInfo {
-                                peer_id: Some(peer_id),
-                            })
-                })
+                .filter_map(Into::into)
                 .collect::<Vec<PeerInfo>>();
 
             let topic_hash = TopicHash::from_raw(prune.topic_id.unwrap_or_default());
@@ -398,6 +390,7 @@ fn proto_to_message(rpc: &proto::RPC) -> Rpc {
     }
 
     Rpc {
+    
         messages,
         subscriptions: rpc
             .subscriptions
@@ -1880,6 +1873,7 @@ fn test_connect_to_px_peers_on_handle_prune() {
     for _ in 0..config.prune_peers() + 5 {
         px.push(PeerInfo {
             peer_id: Some(PeerId::random()),
+            signed_peer_record: None,
         });
     }
 
@@ -2545,6 +2539,7 @@ fn test_ignore_px_from_negative_scored_peer() {
     // handle prune from single peer with px peers
     let px = vec![PeerInfo {
         peer_id: Some(PeerId::random()),
+        signed_peer_record: None
     }];
 
     gs.handle_prune(
@@ -3133,6 +3128,7 @@ fn test_ignore_px_from_peers_below_accept_px_threshold() {
     // Handle prune from peer peers[0] with px peers
     let px = vec![PeerInfo {
         peer_id: Some(PeerId::random()),
+        signed_peer_record: None,
     }];
     gs.handle_prune(
         &peers[0],
@@ -3155,6 +3151,7 @@ fn test_ignore_px_from_peers_below_accept_px_threshold() {
     // handle prune from peer peers[1] with px peers
     let px = vec![PeerInfo {
         peer_id: Some(PeerId::random()),
+        signed_peer_record: None,
     }];
     gs.handle_prune(
         &peers[1],

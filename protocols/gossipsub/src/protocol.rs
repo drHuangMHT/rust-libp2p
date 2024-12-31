@@ -468,16 +468,7 @@ impl Decoder for GossipsubCodec {
                 let peers = prune
                     .peers
                     .into_iter()
-                    .filter_map(|info| {
-                        info.peer_id
-                            .as_ref()
-                            .and_then(|id| PeerId::from_bytes(id).ok())
-                            .map(|peer_id|
-                                    //TODO signedPeerRecord, see https://github.com/libp2p/specs/pull/217
-                                    PeerInfo {
-                                        peer_id: Some(peer_id),
-                                    })
-                    })
+                    .filter_map(Into::into)
                     .collect::<Vec<PeerInfo>>();
 
                 let topic_hash = TopicHash::from_raw(prune.topic_id.unwrap_or_default());
