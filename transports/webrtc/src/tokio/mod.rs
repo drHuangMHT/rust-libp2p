@@ -25,7 +25,7 @@ mod fingerprint;
 mod req_res_chan;
 mod sdp;
 mod stream;
-mod transport;
+pub(crate) mod transport;
 mod udp_mux;
 mod upgrade;
 

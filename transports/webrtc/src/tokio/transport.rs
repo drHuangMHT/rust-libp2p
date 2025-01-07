@@ -361,9 +361,9 @@ impl Stream for ListenStream {
 
 /// A config which holds peer's keys and a x509Cert used to authenticate WebRTC communications.
 #[derive(Clone)]
-struct Config {
+pub(crate) struct Config {
     inner: RTCConfiguration,
-    fingerprint: Fingerprint,
+    pub fingerprint: Fingerprint,
     id_keys: identity::Keypair,
 }
 
