@@ -81,7 +81,7 @@
 
 #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
 
-#[cfg(feature = "tokio")]
-pub mod tokio;
+// #[cfg(feature = "tokio")]
+// pub mod tokio;
 
 pub mod str0m;

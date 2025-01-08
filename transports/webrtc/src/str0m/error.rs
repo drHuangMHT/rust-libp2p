@@ -18,19 +18,29 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-pub mod certificate;
-pub mod connection;
-mod error;
-mod fingerprint;
-mod req_res_chan;
-mod sdp;
-mod stream;
-pub(crate) mod transport;
-mod udp_mux;
-mod upgrade;
+use libp2p_identity::PeerId;
+use thiserror::Error;
 
-pub use certificate::Certificate;
-pub use connection::Connection;
-pub use error::Error;
-pub use fingerprint::Fingerprint;
-pub use transport::Transport;
+/// Error in WebRTC.
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error(transparent)]
+    WebRTC(#[from] webrtc::Error),
+    #[error("IO error")]
+    Io(#[from] std::io::Error),
+    #[error("failed to authenticate peer")]
+    Authentication(#[from] libp2p_noise::Error),
+
+    // Authentication errors.
+    #[error("invalid peer ID (expected {expected}, got {got})")]
+    InvalidPeerID { expected: PeerId, got: PeerId },
+
+    #[error("no active listeners, can not dial without a previous listen")]
+    NoListeners,
+
+    #[error("UDP mux error: {0}")]
+    UDPMux(std::io::Error),
+
+    #[error("internal error: {0} (see debug logs)")]
+    Internal(String),
+}
